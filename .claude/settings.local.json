@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \"winget --version\")",
+      "Bash(powershell.exe -Command \"Get-Command choco -ErrorAction SilentlyContinue\")",
+      "Bash(powershell.exe -Command \"winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements\")",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:cdn.21st.dev)",
+      "Bash(curl -s \"https://cdn.21st.dev/dhileepkumargm/cybernetic-grid-shader/default/bundle.1756052155666.html?theme=dark&dark=true\")"
+    ]
+  }
+}
