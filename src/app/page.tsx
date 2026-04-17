@@ -143,6 +143,7 @@ function CyberGrid() {
     }
 
     function onMouseMove(e: MouseEvent) {
+      if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       const dpr  = window.devicePixelRatio || 1;
       target.x = (e.clientX - rect.left)  * dpr;
