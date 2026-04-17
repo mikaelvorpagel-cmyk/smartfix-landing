@@ -1364,6 +1364,7 @@ function MapBackground() {
     };
 
     const draw = () => {
+      if (!canvas || !ctx) return;
       W = canvas.width; H = canvas.height;
       const cx = W / 2, cy = H / 2;
 
@@ -2019,6 +2020,7 @@ function RainCanvas() {
     }
 
     function draw() {
+      if (!ctx) return;
       ctx.clearRect(0, 0, W, H);
       for (const p of particles) {
         p.x += p.vx;
