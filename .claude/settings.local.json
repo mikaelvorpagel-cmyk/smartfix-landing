@@ -7,7 +7,14 @@
       "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "WebFetch(domain:cdn.21st.dev)",
-      "Bash(curl -s \"https://cdn.21st.dev/dhileepkumargm/cybernetic-grid-shader/default/bundle.1756052155666.html?theme=dark&dark=true\")"
+      "Bash(curl -s \"https://cdn.21st.dev/dhileepkumargm/cybernetic-grid-shader/default/bundle.1756052155666.html?theme=dark&dark=true\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -v \"^\\\\s*//\")",
+      "Bash(npx vercel *)",
+      "Bash(gh repo *)",
+      "Bash(where gh *)",
+      "Bash(git --version)",
+      "Bash(git config *)"
     ]
   }
 }

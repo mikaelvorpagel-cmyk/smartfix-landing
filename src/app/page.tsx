@@ -20,6 +20,21 @@ import {
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────
+//  Responsive helper
+// ─────────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+// ─────────────────────────────────────────────────────────
 //  Cybernetic Grid — WebGL shader (hero background)
 // ─────────────────────────────────────────────────────────
 function CyberGrid() {
@@ -111,7 +126,8 @@ function CyberGrid() {
     const uTime  = gl.getUniformLocation(prog, 'iTime');
     const uMouse = gl.getUniformLocation(prog, 'iMouse');
 
-    const mouse = { x: 0, y: 0 };
+    const target = { x: 0, y: 0 };
+    const mouse  = { x: 0, y: 0 };
     let raf: number;
     const start = performance.now();
 
@@ -121,18 +137,21 @@ function CyberGrid() {
       canvas.height = canvas.offsetHeight * dpr;
       gl!.viewport(0, 0, canvas.width, canvas.height);
       gl!.uniform2f(uRes, canvas.width, canvas.height);
-      mouse.x = canvas.width  / 2;
-      mouse.y = canvas.height / 2;
+      target.x = mouse.x = canvas.width  / 2;
+      target.y = mouse.y = canvas.height / 2;
     }
 
     function onMouseMove(e: MouseEvent) {
       const rect = canvas.getBoundingClientRect();
       const dpr  = window.devicePixelRatio || 1;
-      mouse.x = (e.clientX - rect.left)  * dpr;
-      mouse.y = canvas.height - (e.clientY - rect.top) * dpr;
+      target.x = (e.clientX - rect.left)  * dpr;
+      target.y = canvas.height - (e.clientY - rect.top) * dpr;
     }
 
     function draw() {
+      // lerp — delay de ~0.05 (mais suave) para seguir o cursor com inércia
+      mouse.x += (target.x - mouse.x) * 0.60;
+      mouse.y += (target.y - mouse.y) * 0.60;
       gl!.uniform1f(uTime,  (performance.now() - start) / 1000);
       gl!.uniform2f(uMouse, mouse.x, mouse.y);
       gl!.drawArrays(gl!.TRIANGLES, 0, 6);
@@ -264,7 +283,7 @@ function Nav() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 transition-all duration-500 ${
+      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-[clamp(1.25rem,5vw,4rem)] py-[clamp(0.75rem,2vw,1.25rem)] transition-all duration-500 ${
         scrolled ? 'bg-[#040404]/90 backdrop-blur-xl border-b border-white/[0.07]' : ''
       }`}
     >
@@ -291,11 +310,13 @@ function Nav() {
         ))}
       </ul>
 
-      <LiquidButton href="#contato" className="h-10">
-        <span className="flex items-center justify-center gap-2 text-black text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.12em] uppercase">
-          Diagnóstico
-        </span>
-      </LiquidButton>
+      <div className="hidden md:block">
+        <LiquidButton href="#contato" className="h-10">
+          <span className="flex items-center justify-center gap-2 text-black text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.12em] uppercase">
+            Diagnóstico
+          </span>
+        </LiquidButton>
+      </div>
     </nav>
   );
 }
@@ -322,10 +343,15 @@ function Hero() {
   return (
     <section
       id="inicio"
-      className="relative min-h-screen grid md:grid-cols-[1fr_1fr] items-center gap-12 px-6 md:px-14 pt-32 pb-20 overflow-hidden"
+      className="relative min-h-screen grid md:grid-cols-[1fr_1fr] items-center gap-[clamp(2rem,6vw,4rem)] px-[clamp(1.25rem,5vw,5rem)] pt-[clamp(6rem,12vw,10rem)] pb-[clamp(3rem,8vw,6rem)] overflow-hidden"
     >
       {/* cybernetic grid shader */}
       <CyberGrid />
+      {/* left-to-right gradient for text contrast */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[1]"
+        style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.87) 0%, rgba(0,0,0,0.45) 45%, transparent 75%)' }}
+      />
       {/* teal radial glow */}
       <div className="absolute w-[900px] h-[600px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse, rgba(125,197,43,0.06) 0%, transparent 65%)' }}
@@ -334,7 +360,7 @@ function Hero() {
       {/* ── content ── */}
       <div className="relative z-10">
         {/* live badge */}
-        <div className="inline-flex items-center gap-2 border border-[#7DC52B]/22 bg-[#7DC52B]/5 rounded-full px-4 py-1.5 text-[0.72rem] font-medium tracking-[0.1em] uppercase text-[#7DC52B] mb-9">
+        <div className="inline-flex items-center gap-2 border border-[#7DC52B]/22 bg-[#7DC52B]/5 rounded-full px-4 py-1.5 text-[clamp(0.65rem,1.8vw,0.75rem)] font-medium tracking-[0.08em] uppercase text-[#7DC52B] mb-9 max-w-full">
           <span className="relative flex-shrink-0 w-2 h-2">
             <span className="absolute inset-0 rounded-full bg-[#7DC52B]" />
             <span
@@ -347,8 +373,7 @@ function Hero() {
 
         {/* title */}
         <h1
-          className="font-[family-name:var(--font-syne)] font-extrabold leading-[0.9] tracking-tight mb-8"
-          style={{ fontSize: 'clamp(2.25rem, 4.5vw, 4.85rem)' }}
+          className="font-[family-name:var(--font-syne)] font-extrabold leading-[0.9] tracking-tight mb-8 text-[clamp(1.5rem,5.5vw,5rem)]"
         >
           <span className="line-clip block">
             <motion.span
@@ -388,7 +413,7 @@ function Hero() {
         </h1>
 
         <motion.p
-          className="text-[#8a8a96] text-[1.15rem] leading-[1.75] max-w-[440px] mb-10 font-light"
+          className="text-[#8a8a96] text-[clamp(1rem,2.5vw,1.125rem)] leading-[1.7] max-w-[55ch] mb-10 font-light"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
@@ -403,15 +428,15 @@ function Hero() {
           transition={{ duration: 0.8, delay: 0.55 }}
         >
           {/* ── Liquid Button CTA ── */}
-          <LiquidButton href="#contato" className="w-60 h-14">
-            <span className="flex items-center justify-center gap-2 text-black text-base font-[family-name:var(--font-syne)] font-bold tracking-wider whitespace-nowrap">
+          <LiquidButton href="#contato" className="w-full sm:w-auto h-14">
+            <span className="flex items-center justify-center gap-2 text-black text-[clamp(0.875rem,2vw,1rem)] font-[family-name:var(--font-syne)] font-bold tracking-wider whitespace-nowrap">
               Chamar técnico
             </span>
           </LiquidButton>
 
           <motion.a
             href="#servicos"
-            className="flex items-center gap-2 px-8 h-14 rounded-lg border text-base text-[#F0F0EE] font-medium hover:bg-white/[0.03] transition-colors"
+            className="flex items-center justify-center gap-2 px-8 h-14 w-full sm:w-auto rounded-lg border text-[clamp(0.875rem,2vw,1rem)] text-[#F0F0EE] font-medium hover:bg-white/[0.03] transition-colors"
             style={{ borderColor, boxShadow: borderGlow }}
           >
             Ver serviços →
@@ -682,7 +707,7 @@ function Counter({ to, suffix, prefix = '' }: { to: number; suffix: string; pref
   }, [inView, to]);
 
   return (
-    <span ref={ref} className="font-[family-name:var(--font-syne)] text-[22px] font-extrabold text-[#F0F0EE] tabular-nums">
+    <span ref={ref} className="font-[family-name:var(--font-syne)] font-extrabold text-[#F0F0EE] tabular-nums text-[clamp(1.375rem,4vw,2rem)]">
       {prefix}{count.toLocaleString('pt-BR')}{suffix}
     </span>
   );
@@ -701,7 +726,11 @@ function Stats() {
       {stats.map(({ to, suffix, label, ...rest }, i) => (
         <motion.div
           key={label}
-          className={`flex flex-col gap-1.5 px-8 py-10 ${i < 3 ? 'md:border-r border-white/[0.07]' : ''} ${i === 0 ? 'border-r border-white/[0.07]' : ''}`}
+          className={`flex flex-col gap-1.5 px-[clamp(0.75rem,3vw,2rem)] py-[clamp(1.25rem,4vw,2.5rem)] border-white/[0.07]
+            ${i % 2 === 0 ? 'border-r' : ''}
+            ${i < 2 ? 'border-b md:border-b-0' : ''}
+            ${i === 1 ? 'md:border-r' : ''}
+          `}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -770,28 +799,46 @@ function Services() {
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState<number | null>(null);
   const total = SERVICES.length;
+  const isMobile = useIsMobile(1024); // mobile + tablet (sem mouse)
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // auto-advance every 3s, pauses on hover
+  // scroll-based activation em touch devices — ativa quando o card chega a 60% da viewport
   useEffect(() => {
-    if (hovered !== null) return;
+    if (!isMobile) return;
+    const onScroll = () => {
+      const threshold = window.innerHeight * 0.6;
+      let next = 0;
+      cardRefs.current.forEach((el, i) => {
+        if (el && el.getBoundingClientRect().top <= threshold) next = i;
+      });
+      setActive(next);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // checa posição inicial
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isMobile]);
+
+  // auto-advance apenas no desktop, pausa no hover
+  useEffect(() => {
+    if (isMobile || hovered !== null) return;
     const id = setInterval(() => setActive((p) => (p + 1) % total), 3000);
     return () => clearInterval(id);
-  }, [total, hovered]);
+  }, [total, hovered, isMobile]);
 
   return (
-    <section id="servicos" className="py-24 px-6 md:px-14">
-      <div className="max-w-7xl mx-auto">
+    <section id="servicos" className="py-[clamp(3rem,8vw,6rem)] px-[clamp(1.25rem,5vw,5rem)]">
+      <div className="max-w-7xl mx-auto w-full overflow-hidden">
         <motion.div
-          className="mb-12"
+          className="mb-[clamp(2rem,5vw,3rem)]"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.15em] uppercase mb-4">
+          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.08em] uppercase mb-4">
             Do que você mais usa ao que você mais precisa
           </div>
-          <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[38px] md:text-[50px] leading-none tracking-tight mb-8">
+          <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(1.5rem,5vw,3.25rem)] leading-[1.1] tracking-tight mb-8">
             O QUE<br />CONSERTAMOS
           </h2>
           {/* nav row */}
@@ -828,13 +875,15 @@ function Services() {
             return (
               <motion.div
                 key={svc.num}
+                ref={(el) => { cardRefs.current[i] = el as HTMLDivElement | null; }}
                 onClick={() => setActive(i)}
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
-                className="group relative h-[340px] rounded-2xl overflow-hidden cursor-pointer"
+                className="group relative rounded-2xl overflow-hidden cursor-pointer"
+                style={{ height: 'clamp(220px, 60vw, 340px)' }}
                 animate={{
-                  opacity: isActive ? 1 : 0.5,
-                  filter: isActive ? 'blur(0px)' : 'blur(2px)',
+                  opacity: isMobile ? 1 : (isActive ? 1 : 0.5),
+                  filter: isMobile ? 'blur(0px)' : (isActive ? 'blur(0px)' : 'blur(2px)'),
                 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
               >
@@ -864,7 +913,7 @@ function Services() {
 
                 {/* glassmorphism content panel */}
                 <div
-                  className="absolute bottom-0 left-0 right-0 p-5 m-3 rounded-xl transition-all duration-300 z-10"
+                  className="absolute bottom-0 left-0 right-0 p-[clamp(0.75rem,2.5vw,1.25rem)] m-[clamp(0.25rem,1vw,0.75rem)] rounded-xl transition-all duration-300 z-10"
                   style={{
                     background: 'rgba(0, 0, 0, 0.35)',
                     backdropFilter: 'blur(8px)',
@@ -873,10 +922,10 @@ function Services() {
                     boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
                   }}
                 >
-                  <h3 className="font-[family-name:var(--font-syne)] font-extrabold text-[18px] tracking-wider text-white mb-2">
+                  <h3 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(0.9375rem,2vw,1.125rem)] tracking-wider text-white mb-2">
                     {svc.name}
                   </h3>
-                  <p className="text-white/50 text-[1.03rem] leading-relaxed mb-3 line-clamp-2">
+                  <p className="text-white/50 text-[0.9375rem] leading-relaxed mb-3 line-clamp-2">
                     {svc.desc}
                   </p>
                   <div className="inline-flex items-center gap-1.5 text-[0.93rem] font-medium text-[#7DC52B] bg-[#7DC52B]/10 border border-[#7DC52B]/20 rounded-full px-3 py-1">
@@ -892,7 +941,7 @@ function Services() {
         {/* dot indicators */}
         <div className="flex items-center justify-center gap-2 mt-10">
           {SERVICES.map((_, i) => (
-            <button key={i} onClick={() => setActive(i)} className="transition-all duration-300">
+            <button key={i} onClick={() => setActive(i)} className="transition-all duration-300 p-2 -m-2">
               <motion.div
                 className="rounded-full bg-[#7DC52B]"
                 animate={{ width: i === active ? 24 : 6, height: 6, opacity: i === active ? 1 : 0.25 }}
@@ -911,7 +960,7 @@ function Services() {
 // ─────────────────────────────────────────────────────────
 function ParallaxBanner() {
   return (
-    <div className="relative py-24 border-t border-b border-white/[0.07] overflow-hidden" style={{ background: 'rgba(10,10,12,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+    <div className="relative py-[clamp(3rem,8vw,6rem)] border-t border-b border-white/[0.07] overflow-hidden" style={{ background: 'rgba(10,10,12,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
       <div
         className="absolute inset-0 pointer-events-none opacity-40"
         style={{
@@ -922,7 +971,7 @@ function ParallaxBanner() {
       />
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
         <motion.p
-          className="font-[family-name:var(--font-syne)] font-bold text-3xl md:text-4xl leading-snug"
+          className="font-[family-name:var(--font-syne)] font-bold text-[clamp(1.25rem,4vw,2.25rem)] leading-snug"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -931,7 +980,7 @@ function ParallaxBanner() {
           Mais de <span className="text-[#7DC52B]">300 dispositivos</span> consertados — no endereço do cliente.
         </motion.p>
         <motion.p
-          className="font-[family-name:var(--font-syne)] font-bold text-3xl md:text-4xl leading-snug mt-3 text-[#5a5a66]"
+          className="font-[family-name:var(--font-syne)] font-bold text-[clamp(1.25rem,4vw,2.25rem)] leading-snug mt-3 text-[#5a5a66]"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -958,41 +1007,59 @@ function HowItWorks() {
 
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState<number | null>(null);
+  const isMobile = useIsMobile(1024); // mobile + tablet (sem mouse)
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // auto-advance every 3s, pauses on hover
+  // scroll-based activation em touch devices — ativa quando o step chega a 60% da viewport
   useEffect(() => {
-    if (hovered !== null) return;
+    if (!isMobile) return;
+    const onScroll = () => {
+      const threshold = window.innerHeight * 0.6;
+      let next = 0;
+      stepRefs.current.forEach((el, i) => {
+        if (el && el.getBoundingClientRect().top <= threshold) next = i;
+      });
+      setActive(next);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isMobile]);
+
+  // auto-advance apenas no desktop
+  useEffect(() => {
+    if (isMobile || hovered !== null) return;
     const id = setInterval(() => setActive((p) => (p + 1) % steps.length), 3000);
     return () => clearInterval(id);
-  }, [steps.length, hovered]);
+  }, [steps.length, hovered, isMobile]);
 
   return (
-    <section id="processo" className="py-24 px-6 md:px-14">
-      <div className="max-w-7xl mx-auto">
+    <section id="processo" className="py-[clamp(3rem,8vw,6rem)] px-[clamp(1.25rem,5vw,5rem)]">
+      <div className="max-w-7xl mx-auto w-full overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-16"
+          className="mb-[clamp(2.5rem,6vw,4rem)]"
         >
-          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.15em] uppercase mb-4">
+          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.08em] uppercase mb-4">
             Transparente do início ao fim
           </div>
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[38px] md:text-[50px] leading-none tracking-tight">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(1.5rem,5vw,3.25rem)] leading-[1.1] tracking-tight">
               DO AGENDAMENTO<br />AO CONSERTO
             </h2>
-            <div className="flex items-center gap-3 pb-1 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-3 pb-1 flex-shrink-0">
               <button
                 onClick={() => setActive((p) => (p - 1 + steps.length) % steps.length)}
-                className="w-9 h-9 border border-[#7DC52B]/50 bg-[#7DC52B]/10 rounded flex items-center justify-center text-[#7DC52B] hover:bg-[#7DC52B]/20 hover:border-[#7DC52B] transition-all"
+                className="flex-1 sm:flex-none w-9 h-9 border border-[#7DC52B]/50 bg-[#7DC52B]/10 rounded flex items-center justify-center text-[#7DC52B] hover:bg-[#7DC52B]/20 hover:border-[#7DC52B] transition-all"
               >
                 <ChevronLeft size={14} />
               </button>
               <button
                 onClick={() => setActive((p) => (p + 1) % steps.length)}
-                className="w-9 h-9 border border-[#7DC52B]/50 bg-[#7DC52B]/10 rounded flex items-center justify-center text-[#7DC52B] hover:bg-[#7DC52B]/20 hover:border-[#7DC52B] transition-all"
+                className="flex-1 sm:flex-none w-9 h-9 border border-[#7DC52B]/50 bg-[#7DC52B]/10 rounded flex items-center justify-center text-[#7DC52B] hover:bg-[#7DC52B]/20 hover:border-[#7DC52B] transition-all"
               >
                 <ChevronRight size={14} />
               </button>
@@ -1006,17 +1073,22 @@ function HowItWorks() {
             return (
               <motion.div
                 key={num}
+                ref={(el) => { stepRefs.current[i] = el as HTMLDivElement | null; }}
                 onClick={() => setActive(i)}
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
-                className={`relative p-8 cursor-pointer rounded-lg transition-colors duration-300 ${!isActive && i < 3 ? 'md:border-r border-white/[0.07]' : ''} ${!isActive && i > 0 ? 'border-t md:border-t-0 border-white/[0.07]' : ''}`}
-                style={{ background: 'rgba(10,10,12,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+                className={`relative p-[clamp(1rem,3vw,2rem)] cursor-pointer rounded-lg transition-colors duration-300 ${!isActive && i < 3 ? 'md:border-r border-white/[0.07]' : ''} ${!isActive && i > 0 ? 'border-t md:border-t-0 border-white/[0.07]' : ''}`}
+                style={{
+                  background: 'rgba(10,10,12,0.45)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  border: '1px solid transparent',
+                }}
                 animate={{
-                  opacity: isActive ? 1 : 0.5,
+                  opacity: isMobile ? 1 : (isActive ? 1 : 0.5),
                   borderColor: isActive ? 'rgba(125,197,43,0.45)' : 'rgba(255,255,255,0)',
                   boxShadow: isActive ? '0 0 0 1px rgba(125,197,43,0.45), inset 0 0 20px rgba(125,197,43,0.04)' : '0 0 0 0px rgba(125,197,43,0)',
                 }}
-                style={{ border: '1px solid transparent' }}
                 transition={{ duration: 0.4, ease: 'easeInOut' }}
               >
                 {/* active top bar */}
@@ -1027,17 +1099,17 @@ function HowItWorks() {
                 />
 
                 <motion.div
-                  className="font-[family-name:var(--font-space-mono)] text-[42px] font-bold mb-4 select-none"
+                  className="font-[family-name:var(--font-space-mono)] text-[clamp(1.5rem,4vw,2.625rem)] font-bold mb-4 select-none"
                   animate={{ color: isActive ? 'rgba(125,197,43,0.85)' : 'rgba(125,197,43,0.25)' }}
                   transition={{ duration: 0.4 }}
                 >
                   {num}
                 </motion.div>
-                <h3 className="font-[family-name:var(--font-syne)] font-bold text-[20px] tracking-widest mb-3">
+                <h3 className="font-[family-name:var(--font-syne)] font-bold text-[clamp(1rem,2vw,1.25rem)] tracking-widest mb-3">
                   {name}
                 </h3>
                 <motion.p
-                  className="text-[#5a5a66] text-[1.1rem] leading-relaxed"
+                  className="text-[#5a5a66] text-[clamp(0.875rem,1.8vw,1rem)] leading-relaxed"
                   animate={{ opacity: isActive ? 1 : 0.5 }}
                   transition={{ duration: 0.4 }}
                 >
@@ -1082,7 +1154,7 @@ function DiffCard({
 
   return (
     <motion.div
-      className="w-full border border-[#7DC52B]/30 rounded-xl p-7"
+      className="w-full border border-[#7DC52B]/30 rounded-xl p-[clamp(1rem,3vw,1.75rem)]"
       initial={{ opacity: 0, y: 60 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 60 }}
       transition={{ duration: 0.7, delay: delays[index], ease: [0.16, 1, 0.3, 1] }}
@@ -1094,9 +1166,9 @@ function DiffCard({
     >
       <div className="flex items-center gap-3 mb-3">
         <Icon size={16} className="text-[#7DC52B] flex-shrink-0" />
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-[18px] tracking-widest">{name}</h3>
+        <h3 className="font-[family-name:var(--font-syne)] font-bold text-[clamp(0.875rem,2vw,1rem)] tracking-widest">{name}</h3>
       </div>
-      <p className="text-[#8a8a96] text-[18px] leading-relaxed">{body}</p>
+      <p className="text-[#8a8a96] text-[clamp(0.875rem,2vw,0.9375rem)] leading-relaxed">{body}</p>
     </motion.div>
   );
 }
@@ -1116,7 +1188,7 @@ function Differentials() {
     <section
       ref={sectionRef}
       id="diferenciais"
-      className="relative py-24 px-6 md:px-14"
+      className="relative py-[clamp(3rem,8vw,6rem)] px-[clamp(1.25rem,5vw,5rem)]"
       style={{
         background: 'rgba(8,10,8,0.55)',
         backdropFilter: 'blur(18px)',
@@ -1125,16 +1197,16 @@ function Differentials() {
         borderBottom: '1px solid rgba(125,197,43,0.08)',
       }}
     >
-      <div className="max-w-6xl mx-auto w-full grid md:grid-cols-[1fr_1fr] gap-16 items-start">
+      <div className="max-w-6xl mx-auto w-full grid md:grid-cols-[1fr_1fr] gap-[clamp(2rem,6vw,5rem)] items-start">
           {/* left */}
           <div>
-            <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.15em] uppercase mb-5">
+            <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.08em] uppercase mb-5">
               Por que a SmartFix?
             </div>
-            <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[38px] md:text-[50px] leading-none tracking-tight mb-6">
+            <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(1.5rem,5vw,3.25rem)] leading-[1.1] tracking-tight mb-6">
               O TÉCNICO<br />QUE VAI<br />ATÉ VOCÊ
             </h2>
-            <p className="text-[#5a5a66] text-[20px] leading-relaxed mb-8">
+            <p className="text-[#5a5a66] text-[clamp(1rem,2.5vw,1.2rem)] leading-[1.65] mb-8">
               Esqueça fila de espera e deixar o celular por dias. A SmartFix vai até você em Cascavel e região, conserta no local e ainda te dá garantia de até 90 dias.
             </p>
             <a
@@ -1174,19 +1246,19 @@ function Testimonials() {
   ];
 
   return (
-    <section id="avaliacoes" className="py-24 px-6 md:px-14">
+    <section id="avaliacoes" className="py-[clamp(3rem,8vw,6rem)] px-[clamp(1.25rem,5vw,5rem)]">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-14"
+          className="mb-[clamp(2.5rem,5vw,3.5rem)]"
         >
-          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.15em] uppercase mb-4">
+          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.08em] uppercase mb-4">
             Avaliações reais
           </div>
-          <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[38px] md:text-[50px] leading-none tracking-tight">
+          <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(1.5rem,5vw,3.25rem)] leading-[1.1] tracking-tight">
             O QUE NOSSOS<br />CLIENTES DIZEM
           </h2>
         </motion.div>
@@ -1195,7 +1267,7 @@ function Testimonials() {
           {cards.map(({ initials, name, role, color, text }, i) => (
             <motion.div
               key={name}
-              className="border border-white/[0.07] rounded-xl p-7 hover:border-white/15 transition-all flex flex-col gap-5"
+              className="border border-white/[0.07] rounded-xl p-[clamp(1rem,3vw,1.75rem)] hover:border-white/15 transition-all flex flex-col gap-5"
               style={{ background: 'rgba(15,15,18,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1203,7 +1275,7 @@ function Testimonials() {
               transition={{ duration: 0.6, delay: i * 0.12 }}
             >
               <div className="text-[#7DC52B] text-sm tracking-wider">★★★★★</div>
-              <p className="text-[#5a5a66] text-[0.85rem] leading-relaxed flex-1">{text}</p>
+              <p className="text-[#5a5a66] text-[clamp(0.875rem,2vw,0.9375rem)] leading-relaxed flex-1">{text}</p>
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-[family-name:var(--font-syne)] font-bold flex-shrink-0"
@@ -1414,7 +1486,7 @@ function CTAFinal() {
   return (
     <section
       id="contato"
-      className="relative py-32 px-6 text-center overflow-hidden border-t border-white/[0.07]"
+      className="relative py-[clamp(4rem,10vw,8rem)] px-[clamp(1.25rem,5vw,5rem)] text-center overflow-hidden border-t border-white/[0.07]"
       style={{ background: '#02050f' }}
     >
       <MapBackground />
@@ -1430,14 +1502,14 @@ function CTAFinal() {
         </div>
 
         <h2 className="font-[family-name:var(--font-syne)] font-extrabold leading-none tracking-tight text-center"
-          style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)' }}
+          style={{ fontSize: 'clamp(1.75rem, 1.25rem + 3vw, 4.5rem)' }}
         >
           SEU CELULAR<br />
           <span className="text-shimmer">QUEBROU.</span><br />
           A GENTE RESOLVE.
         </h2>
 
-        <p className="text-[#5a5a66] text-base max-w-md">
+        <p className="text-[#5a5a66] text-[clamp(1rem,2.5vw,1.125rem)] max-w-[60ch] text-center">
           O técnico vai até você em Cascavel. Diagnóstico gratuito, orçamento na hora e reparo com garantia — sem você sair do lugar.
         </p>
 
@@ -1445,7 +1517,7 @@ function CTAFinal() {
           {/* ── Liquid WhatsApp CTA ── */}
           <LiquidButton
             href="https://wa.me/5511999999999"
-            className="w-56 h-12"
+            className="w-full sm:w-56 h-12"
           >
             <span className="flex items-center justify-center gap-2 text-black text-sm font-[family-name:var(--font-syne)] font-bold tracking-wider whitespace-nowrap">
               <MessageCircle size={15} />
@@ -1483,19 +1555,19 @@ function UrgencyBanner() {
   }, []);
 
   return (
-    <div className="bg-[#7DC52B] text-black py-4 px-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
-      <div className="flex items-center gap-2 font-[family-name:var(--font-syne)] font-bold text-base tracking-wide">
-        <Clock size={15} />
+    <div className="bg-[#7DC52B] text-black py-3 px-6 flex flex-col items-center justify-center gap-2 text-center">
+      <div className="flex items-center gap-2 font-[family-name:var(--font-syne)] font-bold text-xs tracking-wide">
+        <Clock size={12} />
         Próximo técnico disponível em Cascavel em
-        <span className="bg-black text-[#7DC52B] font-[family-name:var(--font-space-mono)] px-2 py-0.5 rounded text-sm">
-          {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
-        </span>
       </div>
+      <span className="bg-black text-[#7DC52B] font-[family-name:var(--font-space-mono)] px-3 py-1 rounded text-sm font-bold">
+        {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
+      </span>
       <a
         href="https://wa.me/5511999999999"
         target="_blank"
         rel="noopener noreferrer"
-        className="font-[family-name:var(--font-syne)] font-bold text-xs tracking-widest uppercase underline underline-offset-2 hover:opacity-70 transition-opacity"
+        className="font-[family-name:var(--font-syne)] font-bold text-[0.65rem] tracking-widest uppercase underline underline-offset-2 hover:opacity-70 transition-opacity"
       >
         Agendar agora →
       </a>
@@ -1570,33 +1642,33 @@ function Coverage() {
   }
 
   return (
-    <section id="cobertura" className="pt-24 pb-36 px-6 md:px-14" style={{ background: 'rgba(10,10,12,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+    <section id="cobertura" className="pt-[clamp(3rem,8vw,6rem)] pb-[clamp(5rem,12vw,9rem)] px-[clamp(1.25rem,5vw,5rem)]" style={{ background: 'rgba(10,10,12,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-14 flex flex-col md:flex-row md:items-end justify-between gap-8"
+          className="mb-[clamp(2rem,6vw,3.5rem)] flex flex-col md:flex-row md:items-end justify-between gap-[clamp(1.5rem,4vw,2rem)]"
         >
           <div>
-            <div className="flex items-center gap-2 text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.15em] uppercase mb-4">
+            <div className="flex items-center gap-2 text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.08em] uppercase mb-4">
               <MapPin size={12} />
               Área de atendimento
             </div>
-            <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[38px] md:text-[50px] leading-none tracking-tight">
+            <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(1.5rem,5vw,3.25rem)] leading-[1.1] tracking-tight">
               ATENDEMOS<br />EM TODO<br />CASCAVEL
             </h2>
           </div>
-          <p className="text-[#a0a0a8] max-w-sm leading-relaxed md:text-right text-[17px]">
+          <p className="text-[#a0a0a8] max-w-sm leading-relaxed md:text-right text-[clamp(0.9375rem,2vw,1.0625rem)]">
             Seu bairro está na lista? Então é só chamar. O técnico vai até você.
           </p>
         </motion.div>
 
         {/* hint */}
         <div className="flex justify-center mb-6">
-          <div className="px-5 py-3 rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5">
-            <span className="text-[1rem] text-[#C9A84C]/80 font-medium tracking-wide">Selecione seu endereço e informe seus dados.</span>
+          <div className="px-[clamp(0.75rem,3vw,1.25rem)] py-[clamp(0.5rem,1.5vw,0.75rem)] rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5">
+            <span className="text-[clamp(0.8rem,1.5vw,1rem)] text-[#C9A84C]/80 font-medium tracking-wide">Selecione seu endereço e informe seus dados.</span>
           </div>
         </div>
 
@@ -1613,12 +1685,12 @@ function Coverage() {
               transition={{ duration: 0.4, delay: i * 0.03 }}
             >
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#7DC52B]/60" />
-              <span className="text-[0.875rem] font-medium text-[#8a8a96]">{b}</span>
+              <span className="text-[clamp(0.75rem,2vw,0.875rem)] font-medium text-[#8a8a96]">{b}</span>
             </motion.button>
           ))}
         </div>
         <motion.div
-          className="flex justify-center mt-6 mb-28"
+          className="flex justify-center mt-6 mb-[clamp(2rem,8vw,6rem)]"
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -1626,7 +1698,7 @@ function Coverage() {
         >
           <button
             onClick={handleOutraCidadeClick}
-            className="flex flex-col items-center gap-1 px-8 py-3 rounded-xl border transition-all cursor-pointer bg-white/[0.03] border-white/[0.06] hover:border-[#7DC52B]/30 hover:bg-[#7DC52B]/5"
+            className="flex flex-col items-center gap-1 px-[clamp(1rem,4vw,2rem)] py-[clamp(0.5rem,2vw,0.75rem)] min-h-[44px] rounded-xl border transition-all cursor-pointer bg-white/[0.03] border-white/[0.06] hover:border-[#7DC52B]/30 hover:bg-[#7DC52B]/5"
           >
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#7DC52B]/60" />
@@ -1757,7 +1829,7 @@ function Coverage() {
           ].map(({ icon: Icon, title, desc }, i) => (
             <motion.div
               key={title}
-              className="border border-white/[0.07] rounded-xl p-6 flex gap-4"
+              className="border border-white/[0.07] rounded-xl p-[clamp(1rem,3vw,1.5rem)] flex gap-4"
               style={{ background: 'rgba(15,15,18,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1817,19 +1889,19 @@ function FAQ() {
   ];
 
   return (
-    <section id="faq" className="py-24 px-6 md:px-14">
+    <section id="faq" className="py-[clamp(3rem,8vw,6rem)] px-[clamp(1.25rem,5vw,5rem)]">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-14"
+          className="mb-[clamp(2.5rem,5vw,3.5rem)]"
         >
-          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.15em] uppercase mb-4">
+          <div className="text-[#7DC52B] text-[0.7rem] font-[family-name:var(--font-syne)] font-bold tracking-[0.08em] uppercase mb-4">
             Dúvidas frequentes
           </div>
-          <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[38px] md:text-[50px] leading-none tracking-tight">
+          <h2 className="font-[family-name:var(--font-syne)] font-extrabold text-[clamp(1.5rem,5vw,3.25rem)] leading-[1.1] tracking-tight">
             PERGUNTAS<br />FREQUENTES
           </h2>
         </motion.div>
@@ -1844,10 +1916,10 @@ function FAQ() {
               transition={{ duration: 0.4, delay: i * 0.06 }}
             >
               <button
-                className="w-full flex items-center justify-between gap-4 py-5 text-left group"
+                className="w-full flex items-center justify-between gap-4 py-5 min-h-[44px] text-left group"
                 onClick={() => setOpen(open === i ? null : i)}
               >
-                <span className="font-[family-name:var(--font-syne)] font-semibold text-[0.95rem] group-hover:text-[#7DC52B] transition-colors">
+                <span className="font-[family-name:var(--font-syne)] font-semibold text-[1rem] group-hover:text-[#7DC52B] transition-colors">
                   {q}
                 </span>
                 <motion.div
@@ -1864,7 +1936,7 @@ function FAQ() {
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className="overflow-hidden"
               >
-                <p className="text-[#5a5a66] text-[0.88rem] leading-relaxed pb-5">
+                <p className="text-[#5a5a66] text-[clamp(0.875rem,2vw,0.9375rem)] leading-relaxed pb-5">
                   {a}
                 </p>
               </motion.div>
@@ -1879,11 +1951,11 @@ function FAQ() {
 // ─────────────────────────────────────────────────────────
 function Footer() {
   return (
-    <footer className="border-t border-white/[0.07] bg-[#040404] px-6 md:px-14 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+    <footer className="border-t border-white/[0.07] bg-[#040404] px-[clamp(1.25rem,5vw,5rem)] py-[clamp(2rem,5vw,3rem)] flex flex-col md:flex-row items-center justify-between gap-[clamp(1.5rem,3vw,2rem)]">
       <a href="#inicio" className="flex items-center">
         <Image src="/Logo.png" alt="SmartFix" width={44} height={44} className="object-cover rounded-full" />
       </a>
-      <ul className="flex flex-wrap gap-8 justify-center">
+      <ul className="flex flex-wrap gap-4 md:gap-8 justify-center">
         {[['Serviços', '#servicos'], ['Cobertura', '#cobertura'], ['Avaliações', '#avaliacoes'], ['FAQ', '#faq'], ['Contato', '#contato']].map(([label, href]) => (
           <li key={href}>
             <a href={href} className="text-xs tracking-widest text-[#5a5a66] uppercase hover:text-[#F0F0EE] transition-colors">

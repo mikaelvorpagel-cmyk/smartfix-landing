@@ -124,10 +124,12 @@
   body {
     @apply bg-[#040404] text-[#F0F0EE];
     cursor: none;
+    overflow-x: hidden;
   }
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 }
 
