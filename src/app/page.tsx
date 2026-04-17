@@ -1467,6 +1467,7 @@ function MapBackground() {
     };
 
     const resize = () => {
+      if (!canvas) return;
       canvas.width  = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
     };
@@ -1994,6 +1995,7 @@ function RainCanvas() {
     let particles: Particle[] = [];
 
     function resize() {
+      if (!canvas) return;
       W = window.innerWidth;
       H = window.innerHeight;
       canvas.width = W;
