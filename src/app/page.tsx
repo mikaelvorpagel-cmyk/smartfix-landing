@@ -132,6 +132,7 @@ function CyberGrid() {
     const start = performance.now();
 
     function resize() {
+      if (!canvas) return;
       const dpr = window.devicePixelRatio || 1;
       canvas.width  = canvas.offsetWidth  * dpr;
       canvas.height = canvas.offsetHeight * dpr;
